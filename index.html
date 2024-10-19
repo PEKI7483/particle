@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>动态草坪粒子特效网页</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- 引入 Three.js 库 -->
+  <script src="libs/three.min.js"></script>
+</head>
+<body>
+  <!-- 主内容由 Three.js 渲染，无需额外的 DOM 元素 -->
+
+  <!-- 着色器脚本 -->
+  <script id="particleVertex" type="x-shader/x-vertex">
+    uniform float time;
+    uniform vec2 center;
+    varying float vDistance;
+
+    void main() {
+      vec3 pos = position;
+
+      // 添加微风效果，模拟草的轻微摆动
+      pos.y += sin(time + position.x * 0.1) * 0.5;
+
+      // 计算粒子与中心的距离
+      vDistance = distance(pos.xz, center);
+
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+
+      // 根据距离调整粒子大小
+      float size = 5.0 * (1.0 - smoothstep(50.0, 200.0, vDistance));
+      gl_PointSize = size;
+    }
+  </script>
+
+  <script id="particleFragment" type="x-shader/x-fragment">
+    varying float vDistance;
+
+    void main() {
+      // 计算粒子内部的坐标，范围从 -0.5 到 0.5
+      vec2 coord = gl_PointCoord - vec2(0.5);
+      float dist = length(coord);
+
+      // 创建圆形粒子，超过半径的部分丢弃
+      if (dist > 0.5) {
+        discard;
+      }
+
+      // 创建柔和的边缘
+      float alpha = 1.0 - smoothstep(0.4, 0.5, dist);
+
+      // 根据与中心的距离，调整整体透明度，实现模糊效果
+      alpha *= 1.0 - smoothstep(50.0, 200.0, vDistance);
+
+      // 设置粒子的颜色
+      vec3 color = vec3(0.0, 0.8, 0.0); // 绿色
+
+      gl_FragColor = vec4(color, alpha);
+    }
+  </script>
+
+  <!-- 主脚本 -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
